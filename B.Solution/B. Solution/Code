@@ -1,0 +1,261 @@
+// Core Algorithm Implementation Example
+
+class PageReplacementSimulator {
+  constructor(frames, pageReferences) {
+    this.frames = frames;
+    this.pageReferences = pageReferences;
+    this.results = {};
+  }
+
+  // Run all algorithms and store results
+  runAllAlgorithms() {
+    this.results.fifo = this.runFIFO();
+    this.results.lru = this.runLRU();
+    this.results.optimal = this.runOptimal();
+    return this.results;
+  }
+
+  // FIFO Algorithm Implementation
+  runFIFO() {
+    const frameArray = new Array(this.frames).fill(null);
+    const queue = [];
+    let pageFaults = 0;
+    const states = [];
+
+    for (let i = 0; i < this.pageReferences.length; i++) {
+      const page = this.pageReferences[i];
+      const currentState = {
+        reference: page,
+        frames: [...frameArray],
+        isFault: false
+      };
+
+      if (!frameArray.includes(page)) {
+        // Page fault
+        currentState.isFault = true;
+        pageFaults++;
+
+        if (queue.length >= this.frames) {
+          // Need to replace
+          const oldestPage = queue.shift();
+          const indexToReplace = frameArray.indexOf(oldestPage);
+          frameArray[indexToReplace] = page;
+        } else {
+          // Just add to first empty frame
+          const emptyIndex = frameArray.indexOf(null);
+          frameArray[emptyIndex] = page;
+        }
+        queue.push(page);
+      }
+
+      states.push(currentState);
+    }
+
+    return {
+      algorithm: 'FIFO',
+      pageFaults,
+      hitRatio: (this.pageReferences.length - pageFaults) / this.pageReferences.length,
+      states
+    };
+  }
+
+  // LRU Algorithm Implementation
+  runLRU() {
+    const frameArray = new Array(this.frames).fill(null);
+    const pageUsage = new Map();
+    let pageFaults = 0;
+    const states = [];
+
+    for (let i = 0; i < this.pageReferences.length; i++) {
+      const page = this.pageReferences[i];
+      const currentState = {
+        reference: page,
+        frames: [...frameArray],
+        isFault: false
+      };
+
+      if (!frameArray.includes(page)) {
+        // Page fault
+        currentState.isFault = true;
+        pageFaults++;
+
+        if (!frameArray.includes(null)) {
+          // Need to replace - find LRU page
+          let lruPage = null;
+          let lruTime = Infinity;
+
+          for (const [currentPage, lastUsed] of pageUsage.entries()) {
+            if (frameArray.includes(currentPage) && lastUsed < lruTime) {
+              lruTime = lastUsed;
+              lruPage = currentPage;
+            }
+          }
+
+          const indexToReplace = frameArray.indexOf(lruPage);
+          frameArray[indexToReplace] = page;
+        } else {
+          // Just add to first empty frame
+          const emptyIndex = frameArray.indexOf(null);
+          frameArray[emptyIndex] = page;
+        }
+      }
+
+      // Update usage time for this page
+      pageUsage.set(page, i);
+      states.push(currentState);
+    }
+
+    return {
+      algorithm: 'LRU',
+      pageFaults,
+      hitRatio: (this.pageReferences.length - pageFaults) / this.pageReferences.length,
+      states
+    };
+  }
+
+  // Optimal Algorithm Implementation
+  runOptimal() {
+    const frameArray = new Array(this.frames).fill(null);
+    let pageFaults = 0;
+    const states = [];
+
+    for (let i = 0; i < this.pageReferences.length; i++) {
+      const page = this.pageReferences[i];
+      const currentState = {
+        reference: page,
+        frames: [...frameArray],
+        isFault: false
+      };
+
+      if (!frameArray.includes(page)) {
+        // Page fault
+        currentState.isFault = true;
+        pageFaults++;
+
+        if (!frameArray.includes(null)) {
+          // Need to replace - find optimal page to replace
+          let furthestPage = null;
+          let furthestDistance = -1;
+
+          for (const framePage of frameArray) {
+            if (framePage === null) continue;
+
+            // Find next occurrence of this page
+            let nextOccurrence = this.pageReferences.indexOf(framePage, i + 1);
+            if (nextOccurrence === -1) {
+              // Page not used again - this is optimal to replace
+              furthestPage = framePage;
+              break;
+            } else if (nextOccurrence > furthestDistance) {
+              furthestDistance = nextOccurrence;
+              furthestPage = framePage;
+            }
+          }
+
+          const indexToReplace = frameArray.indexOf(furthestPage);
+          frameArray[indexToReplace] = page;
+        } else {
+          // Just add to first empty frame
+          const emptyIndex = frameArray.indexOf(null);
+          frameArray[emptyIndex] = page;
+        }
+      }
+
+      states.push(currentState);
+    }
+
+    return {
+      algorithm: 'Optimal',
+      pageFaults,
+      hitRatio: (this.pageReferences.length - pageFaults) / this.pageReferences.length,
+      states
+    };
+  }
+}
+
+// UI Component Example (React Native)
+function FrameVisualizer({ frames, currentPage, isFault }) {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.pageReference}>
+        Current Reference: {currentPage}
+      </Text>
+      <View style={styles.framesContainer}>
+        {frames.map((frame, index) => (
+          <View 
+            key={index}
+            style={[
+              styles.frame,
+              frame === currentPage && isFault && styles.newPage,
+              frame === currentPage && !isFault && styles.hitPage,
+              frame === null && styles.emptyFrame
+            ]}
+          >
+            <Text style={styles.frameText}>
+              {frame !== null ? frame : '-'}
+            </Text>
+          </View>
+        ))}
+      </View>
+      <Text style={[styles.status, isFault ? styles.fault : styles.hit]}>
+        {isFault ? 'PAGE FAULT' : 'PAGE HIT'}
+      </Text>
+    </View>
+  );
+}
+
+// Styles
+const styles = StyleSheet.create({
+  container: {
+    padding: 10,
+    marginVertical: 5,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 5,
+  },
+  pageReference: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  framesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  frame: {
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    margin: 5,
+    backgroundColor: 'white',
+  },
+  frameText: {
+    fontSize: 18,
+  },
+  newPage: {
+    backgroundColor: '#ffcccb',
+    borderColor: 'red',
+  },
+  hitPage: {
+    backgroundColor: '#ccffcc',
+    borderColor: 'green',
+  },
+  emptyFrame: {
+    backgroundColor: '#eee',
+  },
+  status: {
+    textAlign: 'center',
+    marginTop: 10,
+    fontWeight: 'bold',
+  },
+  fault: {
+    color: 'red',
+  },
+  hit: {
+    color: 'green',
+  },
+});
+
+export default PageReplacementSimulator;
