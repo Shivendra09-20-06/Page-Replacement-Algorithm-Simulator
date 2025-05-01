@@ -1,0 +1,2128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Replacement Algorithm Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .memory-cell {
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #ccc;
+            transition: all 0.3s ease;
+        }
+        .page-fault {
+            animation: pulse 0.5s 2;
+            background-color: #fecaca;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .cpu-active {
+            box-shadow: 0 0 10px 3px rgba(59, 130, 246, 0.5);
+        }
+        .ram-active {
+            box-shadow: 0 0 10px 3px rgba(16, 185, 129, 0.5);
+        }
+        .disk-active {
+            box-shadow: 0 0 10px 3px rgba(245, 158, 11, 0.5);
+        }
+        .algorithm-active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .timeline-marker {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #3b82f6;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .frame-index {
+            position: absolute;
+            top: -20px;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        .memory-block {
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #ccc;
+            margin-bottom: 2px;
+            position: relative;
+        }
+        .segment {
+            position: absolute;
+            border: 1px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            overflow: hidden;
+        }
+        .fragmentation {
+            background-color: #fca5a5;
+        }
+        .free-space {
+            background-color: #d1fae5;
+        }
+        .used-space {
+            background-color: #bfdbfe;
+        }
+        .segment-label {
+            position: absolute;
+            bottom: -20px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            width: 100%;
+            text-align: center;
+        }
+        .connection-line {
+            position: absolute;
+            background-color: #3b82f6;
+            z-index: -1;
+        }
+        .horizontal-line {
+            height: 2px;
+        }
+        .vertical-line {
+            width: 2px;
+        }
+        .data-transfer {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            z-index: 10;
+            animation: moveData 1s linear forwards;
+        }
+        @keyframes moveData {
+            0% { transform: translate(0, 0); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)); opacity: 0; }
+        }
+        .algorithm-comparison {
+            transition: all 0.3s ease;
+        }
+        .comparison-active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .hit-ratio-bar {
+            height: 20px;
+            background-color: #10b981;
+            transition: width 0.5s ease;
+        }
+        .comparison-chart {
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .chart-bar {
+            width: 30%;
+            background-color: #3b82f6;
+            transition: height 0.5s ease;
+            position: relative;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+        .chart-label {
+            position: absolute;
+            bottom: -25px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+        .chart-value {
+            position: absolute;
+            top: -25px;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+        }
+        .algorithm-visualization {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: #f9fafb;
+        }
+        .algorithm-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .algorithm-frames {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .algorithm-frame {
+            flex: 1;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #d1d5db;
+            background-color: #f3f4f6;
+            position: relative;
+        }
+        .algorithm-frame-index {
+            position: absolute;
+            top: -20px;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        .algorithm-timeline {
+            display: flex;
+            overflow-x: auto;
+            padding: 1rem 0;
+        }
+        .algorithm-timeline-item {
+            flex: 0 0 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 0.5rem;
+        }
+        .algorithm-timeline-marker {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #d1d5db;
+            margin-bottom: 0.5rem;
+        }
+        .algorithm-timeline-page {
+            font-weight: 600;
+        }
+        .algorithm-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .stat-value {
+            font-weight: 600;
+            color: #3b82f6;
+        }
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
+        .frame-count-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .frame-count-btn {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .frame-count-btn:hover {
+            background-color: #d1d5db;
+        }
+        .frame-count-display {
+            width: 40px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .algorithm-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .algorithm-details.show {
+            max-height: 500px;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .comparison-table th, .comparison-table td {
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            text-align: left;
+        }
+        .comparison-table th {
+            background-color: #f3f4f6;
+        }
+        .comparison-table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        .speed-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .speed-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+        }
+        .speed-dot.active {
+            background-color: #10b981;
+        }
+        .algorithm-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .step-number {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #3b82f6;
+            color: white;
+            font-size: 0.75rem;
+        }
+        .step-details {
+            flex: 1;
+            padding: 0.5rem;
+            background-color: #f3f4f6;
+            border-radius: 0.25rem;
+        }
+        .step-fault {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        .step-hit {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+        .algorithm-steps {
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+        .toggle-details {
+            cursor: pointer;
+            color: #3b82f6;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .toggle-icon {
+            transition: transform 0.2s;
+        }
+        .toggle-details.active .toggle-icon {
+            transform: rotate(180deg);
+        }
+        .modified-page {
+            background-color: #fef08a;
+        }
+        .read-page {
+            background-color: #dbeafe;
+        }
+        .process-1 {
+            background-color: #bfdbfe;
+        }
+        .process-2 {
+            background-color: #bae6fd;
+        }
+        .process-3 {
+            background-color: #a5f3fc;
+        }
+        .process-4 {
+            background-color: #a7f3d0;
+        }
+        .process-5 {
+            background-color: #d9f99d;
+        }
+        .process-6 {
+            background-color: #fde68a;
+        }
+        .process-7 {
+            background-color: #fecaca;
+        }
+        .process-8 {
+            background-color: #fbcfe8;
+        }
+        .process-badge {
+            font-size: 0.6rem;
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.5rem;
+            margin-left: 0.3rem;
+        }
+        .slider-container {
+            width: 100%;
+            margin: 1rem 0;
+        }
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #d1d5db;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+        }
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+        }
+        .pattern-option {
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pattern-option:hover {
+            background-color: #f3f4f6;
+        }
+        .pattern-option.selected {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .log-entry {
+            font-family: monospace;
+            font-size: 0.875rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .log-timestamp {
+            color: #6b7280;
+            margin-right: 0.5rem;
+        }
+        .log-event {
+            color: #3b82f6;
+            margin-right: 0.5rem;
+        }
+        .log-details {
+            color: #4b5563;
+        }
+        /* Comparison Cards */
+        .comparison-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: #f9fafb;
+            transition: all 0.3s ease;
+        }
+        .comparison-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .comparison-card.active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            transform: scale(1.02);
+        }
+        .comparison-card h3 {
+            color: #1e40af;
+        }
+        .comparison-card p {
+            min-height: 60px;
+        }
+        /* Algorithm Explanations */
+        .algorithm-explanation {
+            transition: max-height 0.3s ease-out;
+            overflow: hidden;
+        }
+        .algorithm-explanation.show {
+            max-height: 1000px;
+            overflow: visible;
+        }
+        .pseudocode {
+            font-family: monospace;
+            background-color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-blue-800">Page Replacement Algorithm Simulator</h1>
+        
+<!-- Problem Statement & User Info -->
+<div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex justify-between items-start">
+    <div class="w-2/3">
+        <h2 class="text-2xl font-semibold mb-2 text-gray-800">Problem Statement</h2>
+        <p class="text-gray-700 mb-4">
+            Design and evaluate different page-replacement algorithms to understand how they affect memory utilization, page fault rates, and overall system performance under varying workloads.
+        </p>
+    </div>
+    <div class="w-1/3 text-right text-gray-800 font-bold text-lg">
+        <p>Name: Shivendra Pratap</p>
+        <p>Roll Number: 32</p>
+        <p>Registration Number: 12323629</p>
+    </div>
+</div>
+
+        <!-- System Configuration Panel -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-cog mr-2 text-blue-500"></i>System Configuration
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Page Size Configuration -->
+                <div>
+                    <label for="pageSize" class="block text-sm font-medium text-gray-700 mb-1">Page Size</label>
+                    <select id="pageSize" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="1">1 KB</option>
+                        <option value="2">2 KB</option>
+                        <option value="4" selected>4 KB</option>
+                        <option value="8">8 KB</option>
+                        <option value="16">16 KB</option>
+                        <option value="32">32 KB</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Determines how memory is divided into pages</p>
+                </div>
+                
+                <!-- Memory Size Configuration -->
+                <div>
+                    <label for="memorySize" class="block text-sm font-medium text-gray-700 mb-1">Memory Size</label>
+                    <select id="memorySize" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="16">16 KB</option>
+                        <option value="32">32 KB</option>
+                        <option value="64" selected>64 KB</option>
+                        <option value="128">128 KB</option>
+                        <option value="256">256 KB</option>
+                        <option value="512">512 KB</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Total physical memory available</p>
+                </div>
+                
+                <!-- Frame Count Display -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm font-medium text-gray-700">Calculated Frames</div>
+                    <div class="text-2xl font-bold text-blue-600" id="frameCountDisplay">16</div>
+                    <div class="text-xs text-gray-500">Memory Size / Page Size</div>
+                </div>
+            </div>
+            
+            <!-- Initial Frame Contents -->
+            <div class="mt-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Initial Frame Contents</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2" id="initialFramesContainer">
+                    <!-- Frames will be populated here by JavaScript -->
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Preload pages into memory before simulation starts</p>
+            </div>
+        </div>
+        
+        <!-- Simulation Control Panel -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-sliders-h mr-2 text-blue-500"></i>Simulation Controls
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Algorithm Selection -->
+                <div>
+                    <label for="algorithm" class="block text-sm font-medium text-gray-700 mb-1">Replacement Algorithm</label>
+                    <select id="algorithm" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="fifo">FIFO (First-In First-Out)</option>
+                        <option value="lru">LRU (Least Recently Used)</option>
+                        <option value="optimal">Optimal</option>
+                        <option value="random">Random</option>
+                        <option value="nru">NRU (Not Recently Used)</option>
+                        <option value="clock">Clock</option>
+                    </select>
+                </div>
+                
+                <!-- Simulation Speed -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Simulation Speed</label>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="10" value="5" class="slider" id="simulationSpeed">
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>Slow</span>
+                            <span>Medium</span>
+                            <span>Fast</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Process Count -->
+                <div>
+                    <label for="processCount" class="block text-sm font-medium text-gray-700 mb-1">Process Count</label>
+                    <select id="processCount" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="1">1 Process</option>
+                        <option value="2">2 Processes</option>
+                        <option value="3">3 Processes</option>
+                        <option value="4" selected>4 Processes</option>
+                        <option value="5">5 Processes</option>
+                        <option value="6">6 Processes</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Time Quantum (for multi-process) -->
+            <div class="mt-4" id="timeQuantumContainer">
+                <label for="timeQuantum" class="block text-sm font-medium text-gray-700 mb-1">Time Quantum (ms)</label>
+                <input type="number" id="timeQuantum" min="10" max="1000" step="10" value="100" class="mt-1 block w-full sm:w-1/3 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            </div>
+            
+            <!-- Control Buttons -->
+            <div class="flex flex-wrap gap-4 mt-6">
+                <button id="startBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                    <i class="fas fa-play mr-2"></i>Start Simulation
+                </button>
+                <button id="stepBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <i class="fas fa-step-forward mr-2"></i>Step
+                </button>
+                <button id="pauseBtn" class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 hidden">
+                    <i class="fas fa-pause mr-2"></i>Pause
+                </button>
+                <button id="resetBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                    <i class="fas fa-redo mr-2"></i>Reset
+                </button>
+                <button id="exportLogBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ml-auto">
+                    <i class="fas fa-file-export mr-2"></i>Export Log
+                </button>
+            </div>
+        </div>
+        
+        <!-- Reference String Generator -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-random mr-2 text-blue-500"></i>Reference String Generator
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Pattern Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Reference Pattern</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="pattern-option selected" data-pattern="manual">
+                            <div class="font-medium">Manual Input</div>
+                            <div class="text-xs text-gray-500">Enter your own sequence</div>
+                        </div>
+                        <div class="pattern-option" data-pattern="random">
+                            <div class="font-medium">Random</div>
+                            <div class="text-xs text-gray-500">Completely random access</div>
+                        </div>
+                        <div class="pattern-option" data-pattern="locality">
+                            <div class="font-medium">Locality</div>
+                            <div class="text-xs text-gray-500">Clustered around working sets</div>
+                        </div>
+                        <div class="pattern-option" data-pattern="loop">
+                            <div class="font-medium">Loop</div>
+                            <div class="text-xs text-gray-500">Repeating sequence</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Reference String Input -->
+                <div>
+                    <label for="referenceString" class="block text-sm font-medium text-gray-700 mb-2">Reference String</label>
+                    <div class="flex">
+                        <input type="text" id="referenceString" value="1,2,3,4,1,2,5,1,2,3,4,5" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <button id="generateRefBtn" class="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            <i class="fas fa-random mr-2"></i>Generate
+                        </button>
+                    </div>
+                    <div class="mt-2 flex items-center">
+                        <label for="refLength" class="block text-sm font-medium text-gray-700 mr-2">Length:</label>
+                        <input type="number" id="refLength" min="5" max="50" value="12" class="w-20 px-2 py-1 border border-gray-300 rounded-md shadow-sm">
+                        
+                        <label for="maxPage" class="block text-sm font-medium text-gray-700 ml-4 mr-2">Max Page:</label>
+                        <input type="number" id="maxPage" min="1" max="20" value="5" class="w-20 px-2 py-1 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Access Type Options -->
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Access Type Options</label>
+                <div class="flex flex-wrap gap-4">
+                    <div class="flex items-center">
+                        <input id="readWriteRandom" type="radio" name="accessType" class="h-4 w-4 text-blue-600 focus:ring-blue-500" checked>
+                        <label for="readWriteRandom" class="ml-2 block text-sm text-gray-700">Random Read/Write</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="readOnly" type="radio" name="accessType" class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                        <label for="readOnly" class="ml-2 block text-sm text-gray-700">Read Only</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="writeHeavy" type="radio" name="accessType" class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                        <label for="writeHeavy" class="ml-2 block text-sm text-gray-700">Write Heavy (70%)</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="customRatio" type="radio" name="accessType" class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                        <label for="customRatio" class="ml-2 block text-sm text-gray-700">Custom Ratio:</label>
+                        <input type="number" id="writeRatio" min="0" max="100" value="30" class="ml-2 w-16 px-2 py-1 border border-gray-300 rounded-md shadow-sm" disabled>
+                        <span class="ml-1 text-sm text-gray-500">% Write</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Visualization Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- CPU Visualization -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                    <i class="fas fa-microchip text-blue-500 mr-2"></i>CPU
+                </h2>
+                <div class="bg-gray-100 p-4 rounded-lg h-64 flex flex-col justify-center items-center cpu-active" id="cpuVisualization">
+                    <div class="text-4xl mb-2" id="currentPage">-</div>
+                    <div class="text-sm text-gray-600">Current Page</div>
+                    <div class="mt-4 text-sm" id="accessType">
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">Read</span>
+                    </div>
+                    <div class="mt-2 text-sm" id="processInfo">
+                        <span class="process-badge process-1">P1</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RAM Visualization -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                    <i class="fas fa-memory text-green-500 mr-2"></i>RAM
+                </h2>
+                <div class="bg-gray-100 p-4 rounded-lg h-64 overflow-y-auto ram-active" id="ramVisualization">
+                    <div class="text-center text-gray-500 py-10" id="ramEmptyMessage">
+                        RAM is empty. Start simulation to see pages loaded into memory.
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 hidden" id="ramFramesContainer">
+                        <!-- Frames will be populated here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Disk Visualization -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                    <i class="fas fa-hdd text-yellow-500 mr-2"></i>Disk
+                </h2>
+                <div class="bg-gray-100 p-4 rounded-lg h-64 overflow-y-auto disk-active" id="diskVisualization">
+                    <div class="text-center text-gray-500 py-10">
+                        Pages not in RAM will appear here when swapped out.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Algorithm Visualization -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-project-diagram mr-2 text-blue-500"></i>Algorithm Visualization
+            </h2>
+            
+            <div class="algorithm-visualization">
+                <div class="algorithm-title">
+                    <span id="algoName">FIFO (First-In First-Out)</span>
+                    <span class="text-sm text-gray-500">Page Faults: <span id="pageFaultsCount">0</span></span>
+                </div>
+                
+                <div class="algorithm-frames" id="algorithmFrames">
+                    <!-- Frames will be added dynamically -->
+                </div>
+                
+                <div class="algorithm-timeline" id="algorithmTimeline">
+                    <!-- Timeline items will be added here -->
+                </div>
+                
+                <div class="algorithm-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="hitRatioValue">0%</span>
+                        <span class="stat-label">Hit Ratio</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="faultCountValue">0</span>
+                        <span class="stat-label">Faults</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="efficiencyValue">-</span>
+                        <span class="stat-label">Efficiency</span>
+                    </div>
+                </div>
+                
+                <div class="toggle-details mt-2 active" data-target="algorithmSteps">
+                    <span>Show steps</span>
+                    <i class="fas fa-chevron-down toggle-icon text-xs"></i>
+                </div>
+                
+                <div id="algorithmSteps" class="algorithm-steps algorithm-details show">
+                    <!-- Step-by-step details will be added here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Algorithm Comparison Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-balance-scale mr-2 text-blue-500"></i>Algorithm Comparison
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <!-- FIFO Card -->
+                <div class="comparison-card" id="fifoComparison">
+                    <h3 class="font-bold text-lg mb-2">FIFO</h3>
+                    <p class="text-sm text-gray-600 mb-2">Replaces the page that has been in memory the longest.</p>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div><span class="font-medium">Page Faults:</span> <span id="fifoFaults">0</span></div>
+                        <div><span class="font-medium">Hit Ratio:</span> <span id="fifoHitRatio">0%</span></div>
+                        <div><span class="font-medium">Complexity:</span> <span>Low</span></div>
+                        <div><span class="font-medium">Applicability:</span> <span>High</span></div>
+                    </div>
+                </div>
+                
+                <!-- LRU Card -->
+                <div class="comparison-card" id="lruComparison">
+                    <h3 class="font-bold text-lg mb-2">LRU</h3>
+                    <p class="text-sm text-gray-600 mb-2">Replaces the page that hasn't been used for the longest time.</p>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div><span class="font-medium">Page Faults:</span> <span id="lruFaults">0</span></div>
+                        <div><span class="font-medium">Hit Ratio:</span> <span id="lruHitRatio">0%</span></div>
+                        <div><span class="font-medium">Complexity:</span> <span>Medium</span></div>
+                        <div><span class="font-medium">Applicability:</span> <span>High</span></div>
+                    </div>
+                </div>
+                
+                <!-- Optimal Card -->
+                <div class="comparison-card" id="optimalComparison">
+                    <h3 class="font-bold text-lg mb-2">Optimal</h3>
+                    <p class="text-sm text-gray-600 mb-2">Replaces the page that won't be used for the longest time (theoretical).</p>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div><span class="font-medium">Page Faults:</span> <span id="optimalFaults">0</span></div>
+                        <div><span class="font-medium">Hit Ratio:</span> <span id="optimalHitRatio">0%</span></div>
+                        <div><span class="font-medium">Complexity:</span> <span>High</span></div>
+                        <div><span class="font-medium">Applicability:</span> <span>None</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="compareAlgorithmsBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <i class="fas fa-chart-bar mr-2"></i>Compare Algorithms
+            </button>
+        </div>
+        
+        <!-- Algorithm Explanation Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>Algorithm Explanation
+            </h2>
+            
+            <!-- FIFO Explanation -->
+            <div class="algorithm-explanation" id="fifoExplanation">
+                <h3 class="font-bold text-lg mb-2">First-In-First-Out (FIFO)</h3>
+                <p class="text-gray-600 mb-4">
+                    FIFO is the simplest page replacement algorithm. It works by removing the oldest page in memory when a new page needs to be loaded and there are no free frames. The algorithm maintains a queue of pages, where the first page to enter memory will be the first to be replaced.
+                </p>
+                <div class="pseudocode bg-gray-50 p-4 rounded-lg">
+                    <pre class="text-sm">
+When page fault occurs:
+    if there are free frames:
+        place page in free frame
+    else:
+        remove oldest page (front of queue)
+        load new page in that frame
+    add new page to back of queue</pre>
+                </div>
+                <p class="text-gray-600 mt-4">
+                    <strong>Advantages:</strong> Simple to implement, low overhead<br>
+                    <strong>Disadvantages:</strong> Doesn't consider page usage frequency
+                </p>
+            </div>
+            
+            <!-- LRU Explanation -->
+            <div class="algorithm-explanation hidden" id="lruExplanation">
+                <h3 class="font-bold text-lg mb-2">Least Recently Used (LRU)</h3>
+                <p class="text-gray-600 mb-4">
+                    LRU replaces the page that hasn't been accessed for the longest time. It works on the principle that pages that have been frequently accessed in the recent past will likely be accessed again in the near future. This algorithm keeps track of when each page was last used.
+                </p>
+                <div class="pseudocode bg-gray-50 p-4 rounded-lg">
+                    <pre class="text-sm">
+When page fault occurs:
+    if there are free frames:
+        place page in free frame
+    else:
+        find page with oldest last-access time
+        replace that page with new page
+    update access time for new page
+
+On each page access:
+    update access time for accessed page</pre>
+                </div>
+                <p class="text-gray-600 mt-4">
+                    <strong>Advantages:</strong> Better performance than FIFO, considers temporal locality<br>
+                    <strong>Disadvantages:</strong> Requires additional overhead to track access times
+                </p>
+            </div>
+            
+            <!-- Optimal Explanation -->
+            <div class="algorithm-explanation hidden" id="optimalExplanation">
+                <h3 class="font-bold text-lg mb-2">Optimal (OPT) Algorithm</h3>
+                <p class="text-gray-600 mb-4">
+                    The Optimal algorithm (also known as Belady's optimal algorithm) replaces the page that will not be used for the longest period in the future. This is a theoretical algorithm since it requires knowledge of future page references. It serves as a benchmark for comparing other algorithms.
+                </p>
+                <div class="pseudocode bg-gray-50 p-4 rounded-lg">
+                    <pre class="text-sm">
+When page fault occurs:
+    if there are free frames:
+        place page in free frame
+    else:
+        for each page in memory:
+            find next use in future
+        replace page with furthest next use
+    load new page in selected frame</pre>
+                </div>
+                <p class="text-gray-600 mt-4">
+                    <strong>Advantages:</strong> Provides best possible performance, lowest page fault rate<br>
+                    <strong>Disadvantages:</strong> Not implementable in practice (requires future knowledge)
+                </p>
+            </div>
+            
+            <button id="showAlgorithmBtn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <i class="fas fa-book-open mr-2"></i>Show Algorithm Explanation
+            </button>
+        </div>
+        
+        <!-- Performance Metrics -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-chart-bar mr-2 text-blue-500"></i>Performance Metrics
+            </h2>
+            
+            <div class="comparison-chart" id="performanceChart">
+                <div class="chart-bar" id="faultsChartBar" style="height: 0%">
+                    <div class="chart-value">0</div>
+                    <div class="chart-label">Page Faults</div>
+                </div>
+                <div class="chart-bar" id="hitsChartBar" style="height: 0%">
+                    <div class="chart-value">0</div>
+                    <div class="chart-label">Page Hits</div>
+                </div>
+                <div class="chart-bar" id="writesChartBar" style="height: 0%">
+                    <div class="chart-value">0</div>
+                    <div class="chart-label">Write Operations</div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-medium mb-2">Page Fault Analysis</h4>
+                    <div class="text-sm">
+                        <div class="flex justify-between mb-1">
+                            <span>Total Faults:</span>
+                            <span id="totalFaults">0</span>
+                        </div>
+                        <div class="flex justify-between mb-1">
+                            <span>Fault Rate:</span>
+                            <span id="faultRate">0%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Avg. Fault Time:</span>
+                            <span id="avgFaultTime">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-medium mb-2">Memory Utilization</h4>
+                    <div class="text-sm">
+                        <div class="flex justify-between mb-1">
+                            <span>Frames Used:</span>
+                            <span id="framesUsed">0/<span id="totalFrames">0</span></span>
+                        </div>
+                        <div class="flex justify-between mb-1">
+                            <span>Utilization:</span>
+                            <span id="memoryUtilization">0%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Fragmentation:</span>
+                            <span id="fragmentationLevel">None</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-medium mb-2">Process Statistics</h4>
+                    <div class="text-sm">
+                        <div class="flex justify-between mb-1">
+                            <span>Active Processes:</span>
+                            <span id="activeProcesses">1</span>
+                        </div>
+                        <div class="flex justify-between mb-1">
+                            <span>Context Switches:</span>
+                            <span id="contextSwitches">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Avg. Working Set:</span>
+                            <span id="avgWorkingSet">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Simulation Log -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 flex justify-between items-center">
+                <span><i class="fas fa-clipboard-list mr-2 text-blue-500"></i>Simulation Log</span>
+                <button id="clearLogBtn" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm">
+                    <i class="fas fa-trash-alt mr-1"></i>Clear
+                </button>
+            </h2>
+            
+            <div class="bg-gray-50 p-4 rounded-lg h-64 overflow-y-auto" id="simulationLog">
+                <div class="log-entry">
+                    <span class="log-timestamp">[00:00:00]</span>
+                    <span class="log-event">SYSTEM:</span>
+                    <span class="log-details">Simulation initialized. Ready to start.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // System Configuration
+        let pageSize = 4; // KB
+        let memorySize = 64; // KB
+        let frameCount = 16; // Calculated
+        let algorithm = 'fifo';
+        let simulationSpeed = 5;
+        let processCount = 4;
+        let timeQuantum = 100; // ms
+        let referencePattern = 'manual';
+        let accessType = 'random';
+        let writeRatio = 30;
+        
+        // Simulation State
+        let isSimulating = false;
+        let isPaused = false;
+        let currentStep = 0;
+        let pageFaults = 0;
+        let pageHits = 0;
+        let writeOperations = 0;
+        let contextSwitches = 0;
+        let simulationInterval;
+        let referenceString = [];
+        let accessTypes = [];
+        let processIds = [];
+        let initialFrames = [];
+        
+        // Initialize the simulator
+        document.addEventListener('DOMContentLoaded', () => {
+            initSystemConfiguration();
+            initReferenceGenerator();
+            initSimulationControls();
+            updateFrameCount();
+            renderInitialFrames();
+            updateAlgorithmFrames();
+            addLogEntry("System initialized");
+            initAlgorithmExplanations();
+        });
+        
+        // Initialize system configuration event listeners
+        function initSystemConfiguration() {
+            document.getElementById('pageSize').addEventListener('change', (e) => {
+                pageSize = parseInt(e.target.value);
+                updateFrameCount();
+                renderInitialFrames();
+                addLogEntry(`Page size changed to ${pageSize} KB`);
+            });
+            
+            document.getElementById('memorySize').addEventListener('change', (e) => {
+                memorySize = parseInt(e.target.value);
+                updateFrameCount();
+                renderInitialFrames();
+                addLogEntry(`Memory size changed to ${memorySize} KB`);
+            });
+            
+            document.getElementById('algorithm').addEventListener('change', (e) => {
+                algorithm = e.target.value;
+                updateAlgorithmName();
+                addLogEntry(`Algorithm changed to ${getAlgorithmName()}`);
+            });
+            
+            document.getElementById('simulationSpeed').addEventListener('input', (e) => {
+                simulationSpeed = parseInt(e.target.value);
+                addLogEntry(`Simulation speed set to level ${simulationSpeed}`);
+            });
+            
+            document.getElementById('processCount').addEventListener('change', (e) => {
+                processCount = parseInt(e.target.value);
+                addLogEntry(`Process count changed to ${processCount}`);
+            });
+            
+            document.getElementById('timeQuantum').addEventListener('change', (e) => {
+                timeQuantum = parseInt(e.target.value);
+                addLogEntry(`Time quantum changed to ${timeQuantum}ms`);
+            });
+            
+            // Access type radio buttons
+            document.querySelectorAll('input[name="accessType"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    accessType = e.target.id;
+                    
+                    // Enable/disable custom ratio input
+                    const writeRatioInput = document.getElementById('writeRatio');
+                    writeRatioInput.disabled = accessType !== 'customRatio';
+                    
+                    if (accessType === 'customRatio') {
+                        writeRatio = parseInt(writeRatioInput.value);
+                    } else if (accessType === 'readOnly') {
+                        writeRatio = 0;
+                    } else if (accessType === 'writeHeavy') {
+                        writeRatio = 70;
+                    } else {
+                        writeRatio = 30; // Default for random
+                    }
+                    
+                    addLogEntry(`Access type changed to ${accessType} (${writeRatio}% writes)`);
+                });
+            });
+            
+            // Custom write ratio input
+            document.getElementById('writeRatio').addEventListener('change', (e) => {
+                writeRatio = parseInt(e.target.value);
+                addLogEntry(`Write ratio changed to ${writeRatio}%`);
+            });
+        }
+        
+        // Initialize reference generator event listeners
+        function initReferenceGenerator() {
+            // Pattern selection
+            document.querySelectorAll('.pattern-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    document.querySelectorAll('.pattern-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    option.classList.add('selected');
+                    referencePattern = option.dataset.pattern;
+                    addLogEntry(`Reference pattern changed to ${referencePattern}`);
+                });
+            });
+            
+            // Generate reference string button
+            document.getElementById('generateRefBtn').addEventListener('click', generateReferenceString);
+        }
+        
+        // Initialize simulation control event listeners
+        function initSimulationControls() {
+            document.getElementById('startBtn').addEventListener('click', startSimulation);
+            document.getElementById('stepBtn').addEventListener('click', stepSimulation);
+            document.getElementById('pauseBtn').addEventListener('click', pauseSimulation);
+            document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+            document.getElementById('exportLogBtn').addEventListener('click', exportLog);
+            document.getElementById('clearLogBtn').addEventListener('click', clearLog);
+        }
+        
+        // Update frame count based on memory size and page size
+        function updateFrameCount() {
+            frameCount = Math.floor(memorySize / pageSize);
+            document.getElementById('frameCountDisplay').textContent = frameCount;
+            document.getElementById('totalFrames').textContent = frameCount;
+        }
+        
+        // Render initial frames configuration
+        function renderInitialFrames() {
+            const container = document.getElementById('initialFramesContainer');
+            container.innerHTML = '';
+            
+            initialFrames = Array(frameCount).fill(null);
+            
+            for (let i = 0; i < frameCount; i++) {
+                const frameDiv = document.createElement('div');
+                frameDiv.className = 'bg-gray-100 p-2 rounded text-center';
+                
+                const label = document.createElement('div');
+                label.className = 'text-xs font-medium text-gray-500';
+                label.textContent = `Frame ${i + 1}`;
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '1';
+                input.max = '20';
+                input.className = 'w-full mt-1 px-2 py-1 border border-gray-300 rounded text-center';
+                input.placeholder = 'Empty';
+                input.addEventListener('change', (e) => {
+                    initialFrames[i] = e.target.value ? parseInt(e.target.value) : null;
+                    addLogEntry(`Frame ${i + 1} initial content set to ${initialFrames[i] || 'empty'}`);
+                });
+                
+                frameDiv.appendChild(label);
+                frameDiv.appendChild(input);
+                container.appendChild(frameDiv);
+            }
+        }
+        
+        // Update algorithm frames visualization
+        function updateAlgorithmFrames() {
+            const container = document.getElementById('algorithmFrames');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < frameCount; i++) {
+                const frame = document.createElement('div');
+                frame.className = 'algorithm-frame';
+                
+                const frameIndex = document.createElement('div');
+                frameIndex.className = 'algorithm-frame-index';
+                frameIndex.textContent = `Frame ${i + 1}`;
+                
+                const frameContent = document.createElement('span');
+                frameContent.textContent = '-';
+                
+                frame.appendChild(frameIndex);
+                frame.appendChild(frameContent);
+                container.appendChild(frame);
+            }
+        }
+        
+        // Generate reference string based on selected pattern
+        function generateReferenceString() {
+            const length = parseInt(document.getElementById('refLength').value);
+            const maxPage = parseInt(document.getElementById('maxPage').value);
+            
+            if (referencePattern === 'manual') {
+                // Use the manually entered string
+                const refStr = document.getElementById('referenceString').value.trim();
+                referenceString = refStr.split(',').map(num => num.trim()).filter(num => num !== '').map(Number);
+                addLogEntry(`Using manually entered reference string: ${refStr}`);
+            } else {
+                // Generate based on pattern
+                referenceString = [];
+                
+                if (referencePattern === 'random') {
+                    // Completely random access
+                    for (let i = 0; i < length; i++) {
+                        referenceString.push(Math.floor(Math.random() * maxPage) + 1);
+                    }
+                    addLogEntry(`Generated random reference string of length ${length}`);
+                } else if (referencePattern === 'locality') {
+                    // Locality of reference - pages accessed in clusters
+                    const workingSets = Math.ceil(maxPage / 3);
+                    let currentPage = Math.floor(Math.random() * maxPage) + 1;
+                    
+                    for (let i = 0; i < length; i++) {
+                        // 70% chance to stay in current working set
+                        if (Math.random() < 0.7) {
+                            // Stay in current working set (pages within ±2 of current)
+                            const min = Math.max(1, currentPage - 2);
+                            const max = Math.min(maxPage, currentPage + 2);
+                            currentPage = min + Math.floor(Math.random() * (max - min + 1));
+                        } else {
+                            // Jump to new working set
+                            currentPage = Math.floor(Math.random() * maxPage) + 1;
+                        }
+                        referenceString.push(currentPage);
+                    }
+                    addLogEntry(`Generated locality-based reference string of length ${length}`);
+                } else if (referencePattern === 'loop') {
+                    // Loop pattern - repeating sequence
+                    const loopLength = Math.min(5, Math.floor(length / 3));
+                    const loop = [];
+                    
+                    for (let i = 0; i < loopLength; i++) {
+                        loop.push(Math.floor(Math.random() * maxPage) + 1);
+                    }
+                    
+                    for (let i = 0; i < length; i++) {
+                        referenceString.push(loop[i % loopLength]);
+                    }
+                    addLogEntry(`Generated loop-based reference string of length ${length} with ${loopLength}-page loop`);
+                }
+                
+                // Update the reference string input field
+                document.getElementById('referenceString').value = referenceString.join(',');
+            }
+            
+            // Generate access types
+            generateAccessTypes();
+            
+            // Generate process IDs
+            generateProcessIds();
+            
+            addLogEntry(`Reference string generated: ${referenceString.join(', ')}`);
+        }
+        
+        // Generate access types for each reference
+        function generateAccessTypes() {
+            accessTypes = [];
+            
+            for (let i = 0; i < referenceString.length; i++) {
+                let isWrite = false;
+                
+                if (accessType === 'readOnly') {
+                    isWrite = false;
+                } else if (accessType === 'writeHeavy') {
+                    isWrite = Math.random() < 0.7;
+                } else if (accessType === 'customRatio') {
+                    isWrite = Math.random() < (writeRatio / 100);
+                } else {
+                    // Random (default)
+                    isWrite = Math.random() < 0.3;
+                }
+                
+                accessTypes.push(isWrite ? 'write' : 'read');
+            }
+            
+            addLogEntry(`Generated access types: ${accessTypes.join(', ')}`);
+        }
+        
+        // Generate process IDs for each reference
+        function generateProcessIds() {
+            processIds = [];
+            const activeProcesses = [];
+            
+            // Initialize with first process
+            for (let i = 0; i < processCount; i++) {
+                activeProcesses.push(i + 1);
+            }
+            
+            let currentProcess = 1;
+            let timeInQuantum = 0;
+            
+            for (let i = 0; i < referenceString.length; i++) {
+                processIds.push(currentProcess);
+                timeInQuantum++;
+                
+                // Check if time quantum expired
+                if (timeInQuantum >= Math.floor(referenceString.length / processCount)) {
+                    // Switch to next process
+                    const currentIndex = activeProcesses.indexOf(currentProcess);
+                    currentProcess = activeProcesses[(currentIndex + 1) % activeProcesses.length];
+                    timeInQuantum = 0;
+                    contextSwitches++;
+                }
+            }
+            
+            addLogEntry(`Generated process IDs: ${processIds.join(', ')}`);
+        }
+        
+        // Start the simulation
+        function startSimulation() {
+            if (isSimulating) return;
+            
+            // Parse reference string
+            const refStr = document.getElementById('referenceString').value.trim();
+            referenceString = refStr.split(',').map(num => num.trim()).filter(num => num !== '').map(Number);
+            
+            if (referenceString.length === 0) {
+                addLogEntry("Error: Reference string is empty", true);
+                return;
+            }
+            
+            isSimulating = true;
+            currentStep = 0;
+            pageFaults = 0;
+            pageHits = 0;
+            writeOperations = 0;
+            contextSwitches = 0;
+            
+            // Update UI
+            document.getElementById('startBtn').classList.add('hidden');
+            document.getElementById('pauseBtn').classList.remove('hidden');
+            document.getElementById('resetBtn').disabled = true;
+            
+            // Clear previous visualization
+            document.getElementById('algorithmTimeline').innerHTML = '';
+            document.getElementById('algorithmSteps').innerHTML = '';
+            
+            // Initialize frames with initial contents
+            const frames = [...initialFrames];
+            const fifoQueue = [];
+            const lruCounters = {};
+            const dirtyBits = {};
+            
+            // Initialize LRU counters for initial frames
+            initialFrames.forEach(page => {
+                if (page !== null) {
+                    lruCounters[page] = 0;
+                }
+            });
+            
+            // Calculate delay based on simulation speed
+            const speedToDelay = {
+                1: 2000, 2: 1500, 3: 1000, 4: 800, 5: 600, 
+                6: 400, 7: 300, 8: 200, 9: 100, 10: 50
+            };
+            const delay = speedToDelay[simulationSpeed] || 600;
+            
+            // Start simulation loop
+            simulationInterval = setInterval(() => {
+                if (currentStep >= referenceString.length) {
+                    endSimulation();
+                    return;
+                }
+                
+                const page = referenceString[currentStep];
+                const isWrite = accessTypes[currentStep] === 'write';
+                const processId = processIds[currentStep];
+                
+                // Update CPU visualization
+                document.getElementById('currentPage').textContent = page;
+                document.getElementById('accessType').innerHTML = 
+                    `<span class="px-2 py-1 ${isWrite ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'} rounded">${isWrite ? 'Write' : 'Read'}</span>`;
+                document.getElementById('processInfo').innerHTML = 
+                    `<span class="process-badge process-${processId}">P${processId}</span>`;
+                
+                // Check if page is in memory
+                const pageIndex = frames.indexOf(page);
+                
+                if (pageIndex !== -1) {
+                    // Page hit
+                    pageHits++;
+                    
+                    // Update visualization
+                    const frameElements = document.querySelectorAll('#algorithmFrames .algorithm-frame span');
+                    frameElements[pageIndex].textContent = page;
+                    frameElements[pageIndex].className = isWrite ? 'modified-page' : 'read-page';
+                    
+                    // Update LRU counter
+                    if (algorithm === 'lru') {
+                        lruCounters[page] = currentStep;
+                    }
+                    
+                    // Mark as dirty if write
+                    if (isWrite) {
+                        dirtyBits[page] = true;
+                        writeOperations++;
+                    }
+                    
+                    addLogEntry(`[Step ${currentStep + 1}] Page ${page} found in frame ${pageIndex + 1} (${isWrite ? 'Write' : 'Read'})`);
+                    addAlgorithmStep(currentStep + 1, page, frames, false, `Page ${page} found in frame ${pageIndex + 1}`);
+                } else {
+                    // Page fault
+                    pageFaults++;
+                    
+                    // Find a frame to replace
+                    let replaceIndex = -1;
+                    let replacedPage = null;
+                    
+                    // If there's an empty frame, use it
+                    if (frames.includes(null)) {
+                        replaceIndex = frames.indexOf(null);
+                        addLogEntry(`[Step ${currentStep + 1}] Page ${page} not found, loading into empty frame ${replaceIndex + 1}`);
+                        addAlgorithmStep(currentStep + 1, page, frames, true, `Page ${page} loaded into empty frame ${replaceIndex + 1}`);
+                    } else {
+                        // Apply replacement policy
+                        switch (algorithm) {
+                            case 'fifo':
+                                // The page to replace is at the head of the FIFO queue
+                                replacedPage = fifoQueue[0];
+                                replaceIndex = frames.indexOf(replacedPage);
+                                addLogEntry(`[Step ${currentStep + 1}] Page ${page} not found, replacing oldest page ${replacedPage} in frame ${replaceIndex + 1} (FIFO)`);
+                                addAlgorithmStep(currentStep + 1, page, frames, true, `Page ${page} replacing ${replacedPage} in frame ${replaceIndex + 1} (FIFO)`);
+                                break;
+                                
+                            case 'lru':
+                                // Find the page with the smallest counter (least recently used)
+                                let lruPage = null;
+                                let minCounter = Infinity;
+                                
+                                for (const framePage of frames) {
+                                    if (lruCounters[framePage] < minCounter) {
+                                        minCounter = lruCounters[framePage];
+                                        lruPage = framePage;
+                                    }
+                                }
+                                
+                                replacedPage = lruPage;
+                                replaceIndex = frames.indexOf(replacedPage);
+                                addLogEntry(`[Step ${currentStep + 1}] Page ${page} not found, replacing least recently used page ${replacedPage} in frame ${replaceIndex + 1} (LRU)`);
+                                addAlgorithmStep(currentStep + 1, page, frames, true, `Page ${page} replacing ${replacedPage} in frame ${replaceIndex + 1} (LRU)`);
+                                break;
+                                
+                            case 'optimal':
+                                // Find the page that won't be used for the longest time
+                                let optimalPage = null;
+                                let farthestUse = -1;
+                                
+                                for (const framePage of frames) {
+                                    let nextUse = Infinity;
+                                    
+                                    // Find next use of this page in reference string
+                                    for (let i = currentStep + 1; i < referenceString.length; i++) {
+                                        if (referenceString[i] === framePage) {
+                                            nextUse = i;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (nextUse > farthestUse) {
+                                        farthestUse = nextUse;
+                                        optimalPage = framePage;
+                                    }
+                                }
+                                
+                                replacedPage = optimalPage;
+                                replaceIndex = frames.indexOf(replacedPage);
+                                addLogEntry(`[Step ${currentStep + 1}] Page ${page} not found, replacing page ${replacedPage} in frame ${replaceIndex + 1} which won't be used for longest time (Optimal)`);
+                                addAlgorithmStep(currentStep + 1, page, frames, true, `Page ${page} replacing ${replacedPage} in frame ${replaceIndex + 1} (Optimal)`);
+                                break;
+                                
+                            case 'random':
+                                // Random replacement
+                                replaceIndex = Math.floor(Math.random() * frames.length);
+                                replacedPage = frames[replaceIndex];
+                                addLogEntry(`[Step ${currentStep + 1}] Page ${page} not found, randomly replacing page ${replacedPage} in frame ${replaceIndex + 1}`);
+                                addAlgorithmStep(currentStep + 1, page, frames, true, `Page ${page} randomly replacing ${replacedPage} in frame ${replaceIndex + 1}`);
+                                break;
+                        }
+                        
+                        // If we're replacing a dirty page, we need to write it back to disk
+                        if (replacedPage && dirtyBits[replacedPage]) {
+                            addLogEntry(`[Step ${currentStep + 1}] Writing dirty page ${replacedPage} back to disk before replacement`);
+                        }
+                        
+                        // Remove replaced page from FIFO queue if using FIFO
+                        if (algorithm === 'fifo' && replacedPage !== null) {
+                            const index = fifoQueue.indexOf(replacedPage);
+                            if (index !== -1) {
+                                fifoQueue.splice(index, 1);
+                            }
+                        }
+                        
+                        // Remove LRU counter for replaced page if using LRU
+                        if (algorithm === 'lru' && replacedPage !== null) {
+                            delete lruCounters[replacedPage];
+                        }
+                        
+                        // Clear dirty bit for replaced page
+                        if (replacedPage !== null) {
+                            delete dirtyBits[replacedPage];
+                        }
+                    }
+                    
+                    // Perform replacement
+                    if (replaceIndex !== -1) {
+                        frames[replaceIndex] = page;
+                        
+                        // Update FIFO queue
+                        if (algorithm === 'fifo') {
+                            fifoQueue.push(page);
+                        }
+                        
+                        // Update LRU counter
+                        if (algorithm === 'lru') {
+                            lruCounters[page] = currentStep;
+                        }
+                        
+                        // Set dirty bit if write
+                        if (isWrite) {
+                            dirtyBits[page] = true;
+                            writeOperations++;
+                        }
+                        
+                        // Update visualization
+                        const frameElements = document.querySelectorAll('#algorithmFrames .algorithm-frame span');
+                        frameElements[replaceIndex].textContent = page;
+                        frameElements[replaceIndex].className = isWrite ? 'modified-page' : 'read-page';
+                    }
+                }
+                
+                // Update timeline
+                const timelineItem = document.createElement('div');
+                timelineItem.className = 'algorithm-timeline-item';
+                
+                const marker = document.createElement('div');
+                marker.className = 'algorithm-timeline-marker';
+                marker.style.backgroundColor = pageIndex !== -1 ? '#10b981' : '#ef4444'; // Green for hit, red for fault
+                
+                const pageElement = document.createElement('div');
+                pageElement.className = 'algorithm-timeline-page';
+                pageElement.textContent = page;
+                
+                timelineItem.appendChild(marker);
+                timelineItem.appendChild(pageElement);
+                document.getElementById('algorithmTimeline').appendChild(timelineItem);
+                
+                // Scroll timeline to the end
+                document.getElementById('algorithmTimeline').scrollLeft = document.getElementById('algorithmTimeline').scrollWidth;
+                
+                // Update RAM visualization
+                updateRamVisualization(frames);
+                
+                // Update performance metrics
+                updatePerformanceMetrics();
+                
+                currentStep++;
+            }, delay);
+            
+            addLogEntry("Simulation started");
+        }
+        
+        // Pause the simulation
+        function pauseSimulation() {
+            if (!isSimulating) return;
+            
+            clearInterval(simulationInterval);
+            isSimulating = false;
+            isPaused = true;
+            
+            document.getElementById('pauseBtn').classList.add('hidden');
+            document.getElementById('startBtn').classList.remove('hidden');
+            
+            addLogEntry("Simulation paused");
+        }
+        
+        // Step through the simulation one step at a time
+        function stepSimulation() {
+            if (isSimulating) return;
+            
+            if (currentStep >= referenceString.length) {
+                endSimulation();
+                return;
+            }
+            
+            // Similar logic as in startSimulation, but just for one step
+            // This is a simplified version - in a real implementation, you'd reuse the same logic
+            
+            currentStep++;
+            addLogEntry(`Stepped to reference ${currentStep}: ${referenceString[currentStep - 1]}`);
+        }
+        
+        // End the simulation
+        function endSimulation() {
+            clearInterval(simulationInterval);
+            isSimulating = false;
+            
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden');
+            document.getElementById('resetBtn').disabled = false;
+            
+            // Calculate final metrics
+            const hitRatio = referenceString.length > 0 
+                ? Math.round((pageHits / referenceString.length) * 100)
+                : 0;
+                
+            const faultRate = referenceString.length > 0
+                ? Math.round((pageFaults / referenceString.length) * 100)
+                : 0;
+                
+            // Update final stats
+            document.getElementById('pageFaultsCount').textContent = pageFaults;
+            document.getElementById('hitRatioValue').textContent = `${hitRatio}%`;
+            document.getElementById('faultCountValue').textContent = pageFaults;
+            document.getElementById('efficiencyValue').textContent = `${100 - faultRate}%`;
+            
+            document.getElementById('totalFaults').textContent = pageFaults;
+            document.getElementById('faultRate').textContent = `${faultRate}%`;
+            
+            addLogEntry("Simulation completed");
+            addLogEntry(`Final results: ${pageFaults} page faults, ${hitRatio}% hit ratio`);
+        }
+        
+        // Reset the simulation
+        function resetSimulation() {
+            clearInterval(simulationInterval);
+            isSimulating = false;
+            isPaused = false;
+            currentStep = 0;
+            pageFaults = 0;
+            pageHits = 0;
+            writeOperations = 0;
+            contextSwitches = 0;
+            
+            // Reset UI
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden');
+            document.getElementById('resetBtn').disabled = false;
+            document.getElementById('currentPage').textContent = '-';
+            document.getElementById('accessType').innerHTML = '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">Read</span>';
+            document.getElementById('processInfo').innerHTML = '<span class="process-badge process-1">P1</span>';
+            
+            // Clear visualizations
+            document.getElementById('algorithmTimeline').innerHTML = '';
+            document.getElementById('algorithmSteps').innerHTML = '';
+            
+            const frameElements = document.querySelectorAll('#algorithmFrames .algorithm-frame span');
+            frameElements.forEach(frame => {
+                frame.textContent = '-';
+                frame.className = '';
+            });
+            
+            // Reset RAM visualization
+            document.getElementById('ramEmptyMessage').classList.remove('hidden');
+            document.getElementById('ramFramesContainer').classList.add('hidden');
+            
+            // Reset performance metrics
+            updatePerformanceMetrics();
+            
+            addLogEntry("Simulation reset");
+        }
+        
+        // Update RAM visualization
+        function updateRamVisualization(frames) {
+            const container = document.getElementById('ramFramesContainer');
+            container.innerHTML = '';
+            
+            let hasPages = false;
+            
+            frames.forEach((page, index) => {
+                if (page !== null) {
+                    hasPages = true;
+                    
+                    const frameDiv = document.createElement('div');
+                    frameDiv.className = 'bg-gray-200 p-2 rounded flex items-center justify-between';
+                    
+                    const frameInfo = document.createElement('div');
+                    frameInfo.className = 'flex items-center';
+                    
+                    const frameLabel = document.createElement('span');
+                    frameLabel.className = 'font-medium mr-2';
+                    frameLabel.textContent = `Frame ${index + 1}:`;
+                    
+                    const pageNumber = document.createElement('span');
+                    pageNumber.className = 'font-bold';
+                    pageNumber.textContent = page;
+                    
+                    frameInfo.appendChild(frameLabel);
+                    frameInfo.appendChild(pageNumber);
+                    
+                    const accessBadge = document.createElement('span');
+                    accessBadge.className = 'text-xs px-2 py-1 rounded';
+                    accessBadge.textContent = 'Read';
+                    
+                    frameDiv.appendChild(frameInfo);
+                    frameDiv.appendChild(accessBadge);
+                    
+                    container.appendChild(frameDiv);
+                }
+            });
+            
+            if (hasPages) {
+                document.getElementById('ramEmptyMessage').classList.add('hidden');
+                container.classList.remove('hidden');
+            } else {
+                document.getElementById('ramEmptyMessage').classList.remove('hidden');
+                container.classList.add('hidden');
+            }
+        }
+        
+        // Add a step to the algorithm visualization
+        function addAlgorithmStep(stepNumber, page, frames, isFault, description) {
+            const stepsContainer = document.getElementById('algorithmSteps');
+            
+            const stepElement = document.createElement('div');
+            stepElement.className = 'algorithm-step';
+            
+            const stepNumberElement = document.createElement('div');
+            stepNumberElement.className = 'step-number';
+            stepNumberElement.textContent = stepNumber;
+            
+            const stepDetails = document.createElement('div');
+            stepDetails.className = `step-details ${isFault ? 'step-fault' : 'step-hit'}`;
+            
+            const stepTitle = document.createElement('div');
+            stepTitle.className = 'font-medium';
+            stepTitle.textContent = `Access Page ${page}: ${isFault ? 'Page Fault' : 'Page Hit'}`;
+            
+            const stepDescription = document.createElement('div');
+            stepDescription.className = 'text-xs mt-1';
+            stepDescription.textContent = description;
+            
+            const frameState = document.createElement('div');
+            frameState.className = 'text-xs mt-1';
+            frameState.textContent = `Frame State: [${frames.map(f => f === null ? '-' : f).join(', ')}]`;
+            
+            stepDetails.appendChild(stepTitle);
+            stepDetails.appendChild(stepDescription);
+            stepDetails.appendChild(frameState);
+            
+            stepElement.appendChild(stepNumberElement);
+            stepElement.appendChild(stepDetails);
+            
+            stepsContainer.appendChild(stepElement);
+            
+            // Scroll to the bottom
+            stepsContainer.scrollTop = stepsContainer.scrollHeight;
+        }
+        
+        // Update performance metrics
+        function updatePerformanceMetrics() {
+            const totalReferences = currentStep;
+            const hitRatio = totalReferences > 0 
+                ? Math.round((pageHits / totalReferences) * 100)
+                : 0;
+                
+            const faultRate = totalReferences > 0
+                ? Math.round((pageFaults / totalReferences) * 100)
+                : 0;
+                
+            // Update charts
+            document.getElementById('faultsChartBar').style.height = `${faultRate}%`;
+            document.querySelector('#faultsChartBar .chart-value').textContent = pageFaults;
+            
+            document.getElementById('hitsChartBar').style.height = `${hitRatio}%`;
+            document.querySelector('#hitsChartBar .chart-value').textContent = pageHits;
+            
+            const writePercentage = totalReferences > 0
+                ? Math.round((writeOperations / totalReferences) * 100)
+                : 0;
+            document.getElementById('writesChartBar').style.height = `${writePercentage}%`;
+            document.querySelector('#writesChartBar .chart-value').textContent = writeOperations;
+            
+            // Update metrics
+            document.getElementById('pageFaultsCount').textContent = pageFaults;
+            document.getElementById('hitRatioValue').textContent = `${hitRatio}%`;
+            document.getElementById('faultCountValue').textContent = pageFaults;
+            document.getElementById('efficiencyValue').textContent = `${100 - faultRate}%`;
+            
+            document.getElementById('totalFaults').textContent = pageFaults;
+            document.getElementById('faultRate').textContent = `${faultRate}%`;
+            document.getElementById('avgFaultTime').textContent = `${(1000 / pageSize).toFixed(2)}ms`;
+            
+            // Calculate frames used
+            const framesUsed = initialFrames.filter(f => f !== null).length;
+            document.getElementById('framesUsed').textContent = `${framesUsed}/${frameCount}`;
+            document.getElementById('memoryUtilization').textContent = `${Math.round((framesUsed / frameCount) * 100)}%`;
+            
+            // Process stats
+            document.getElementById('activeProcesses').textContent = processCount;
+            document.getElementById('contextSwitches').textContent = contextSwitches;
+            document.getElementById('avgWorkingSet').textContent = `${Math.ceil(frameCount / processCount)} pages`;
+        }
+        
+        // Add entry to simulation log
+        function addLogEntry(message, isError = false) {
+            const logContainer = document.getElementById('simulationLog');
+            const now = new Date();
+            const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${isError ? 'text-red-600' : ''}`;
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'log-timestamp';
+            timestampSpan.textContent = timestamp;
+            
+            const eventSpan = document.createElement('span');
+            eventSpan.className = 'log-event';
+            eventSpan.textContent = isError ? 'ERROR:' : 'INFO:';
+            
+            const detailsSpan = document.createElement('span');
+            detailsSpan.className = 'log-details';
+            detailsSpan.textContent = message;
+            
+            logEntry.appendChild(timestampSpan);
+            logEntry.appendChild(eventSpan);
+            logEntry.appendChild(detailsSpan);
+            
+            logContainer.appendChild(logEntry);
+            
+            // Scroll to the bottom
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // Clear the simulation log
+        function clearLog() {
+            document.getElementById('simulationLog').innerHTML = `
+                <div class="log-entry">
+                    <span class="log-timestamp">[00:00:00]</span>
+                    <span class="log-event">SYSTEM:</span>
+                    <span class="log-details">Log cleared. Ready to start new simulation.</span>
+                </div>
+            `;
+        }
+        
+        // Export the simulation log
+        function exportLog() {
+            const logEntries = document.querySelectorAll('#simulationLog .log-entry');
+            let logText = "Memory Management Simulator Log\n";
+            logText += "===============================\n\n";
+            
+            logEntries.forEach(entry => {
+                logText += `${entry.textContent}\n`;
+            });
+            
+            // Create a blob and download it
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `memory-simulation-log-${new Date().toISOString().slice(0, 10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            addLogEntry("Log exported to file");
+        }
+        
+        // Update algorithm name display
+        function updateAlgorithmName() {
+            document.getElementById('algoName').textContent = getAlgorithmName();
+        }
+        
+        // Get full algorithm name
+        function getAlgorithmName() {
+            switch (algorithm) {
+                case 'fifo': return 'FIFO (First-In First-Out)';
+                case 'lru': return 'LRU (Least Recently Used)';
+                case 'optimal': return 'Optimal';
+                case 'random': return 'Random';
+                case 'nru': return 'NRU (Not Recently Used)';
+                case 'clock': return 'Clock';
+                default: return 'FIFO (First-In First-Out)';
+            }
+        }
+        
+        // Toggle details sections
+        document.querySelectorAll('.toggle-details').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const targetId = toggle.getAttribute('data-target');
+                const target = document.getElementById(targetId);
+                
+                toggle.classList.toggle('active');
+                target.classList.toggle('show');
+            });
+        });
+        
+        // Initialize algorithm explanations
+        function initAlgorithmExplanations() {
+            document.querySelectorAll('.algorithm-explanation').forEach(div => {
+                div.classList.remove('show');
+                div.style.maxHeight = '0';
+            });
+            document.getElementById('fifoExplanation').classList.add('show');
+            document.getElementById('fifoExplanation').style.maxHeight = '1000px';
+        }
+        
+        // Compare algorithms (example implementation)
+        function compareAlgorithms() {
+            try {
+                // Debug logs
+                console.log("Starting comparison with:", {
+                    referenceString,
+                    initialFrames,
+                    algorithm
+                });
+
+                const originalAlgorithm = algorithm;
+                const referenceStringBackup = [...referenceString];
+                const initialFramesBackup = [...initialFrames];
+                
+                // Debug logs
+                console.log("Backups created:", {
+                    referenceStringBackup,
+                    initialFramesBackup
+                });
+
+                // Store results
+                const results = {};
+                
+                // List of algorithms to compare
+                const algorithms = ['fifo', 'lru', 'optimal'];
+                
+                algorithms.forEach(algo => {
+                    console.log(`Running algorithm: ${algo}`);
+                    // Preserve original state
+                    algorithm = algo;
+                    referenceString = [...referenceStringBackup];
+                    initialFrames = [...initialFramesBackup];
+                    
+                    // Run simulation without UI updates
+                    const { faults, hits } = runSimulationSilently();
+                    
+                    // Calculate hit ratio dynamically
+                    const totalRefs = referenceString.length;
+                    const hitRatio = totalRefs > 0 ? Math.round((hits / totalRefs) * 100) : 0;
+                    
+                    console.log(`Results for ${algo}:`, { faults, hits, hitRatio });
+                    
+                    results[algo] = {
+                        faults,
+                        hitRatio
+                    };
+                });
+                
+                // Restore original state
+                algorithm = originalAlgorithm;
+                referenceString = [...referenceStringBackup];
+                initialFrames = [...initialFramesBackup];
+                
+                // Update comparison cards
+                updateComparisonCards(results);
+                addLogEntry("Algorithm comparison completed");
+            } catch (error) {
+                console.error('Comparison error:', error);
+                addLogEntry("Error during algorithm comparison", true);
+            }
+        }
+        
+        function runSimulationSilently() {
+            let currentStep = 0;
+            let pageFaults = 0;
+            let pageHits = 0;
+            const frames = [...initialFrames.filter(f => f !== null)]; // Start with preloaded frames
+            const fifoQueue = [...frames];
+            const lruCounters = {};
+            const reference = [...referenceString];
+
+            // Initialize LRU counters
+            frames.forEach(page => lruCounters[page] = currentStep);
+
+            while (currentStep < reference.length) {
+                const page = reference[currentStep];
+                const pageIndex = frames.indexOf(page);
+
+                if (pageIndex === -1) {
+                    pageFaults++;
+                    
+                    if (frames.length < frameCount) {
+                        // Add to empty frame
+                        frames.push(page);
+                        if (algorithm === 'fifo') fifoQueue.push(page);
+                        if (algorithm === 'lru') lruCounters[page] = currentStep;
+                    } else {
+                        // Replacement needed
+                        let replaceIndex;
+                        switch (algorithm) {
+                            case 'fifo':
+                                replaceIndex = frames.indexOf(fifoQueue[0]);
+                                fifoQueue.shift();
+                                fifoQueue.push(page);
+                                break;
+                                
+                            case 'lru':
+                                let lruPage = frames.reduce((a, b) => 
+                                    lruCounters[a] < lruCounters[b] ? a : b);
+                                replaceIndex = frames.indexOf(lruPage);
+                                break;
+                                
+                            case 'optimal':
+                                let farthest = -1;
+                                replaceIndex = 0;
+                                for (let i = 0; i < frames.length; i++) {
+                                    let nextUse = Infinity;
+                                    for (let j = currentStep + 1; j < reference.length; j++) {
+                                        if (reference[j] === frames[i]) {
+                                            nextUse = j;
+                                            break;
+                                        }
+                                    }
+                                    if (nextUse > farthest) {
+                                        farthest = nextUse;
+                                        replaceIndex = i;
+                                    }
+                                }
+                                break;
+                        }
+                        
+                        // Perform replacement
+                        delete lruCounters[frames[replaceIndex]];
+                        frames[replaceIndex] = page;
+                    }
+                    
+                    if (algorithm === 'lru') lruCounters[page] = currentStep;
+                } else {
+                    pageHits++;
+                    if (algorithm === 'lru') lruCounters[page] = currentStep;
+                }
+                
+                currentStep++;
+            }
+            
+            return { faults: pageFaults, hits: pageHits };
+        }
+        
+        // Update comparison cards with results
+        function updateComparisonCards(results) {
+            console.log("Updating cards with results:", results);
+            
+            Object.entries(results).forEach(([algo, stats]) => {
+                const faultsElement = document.getElementById(`${algo}Faults`);
+                const ratioElement = document.getElementById(`${algo}HitRatio`);
+                
+                console.log(`Updating ${algo}:`, {
+                    faultsElement,
+                    ratioElement,
+                    stats
+                });
+                
+                if (faultsElement) {
+                    faultsElement.textContent = stats.faults;
+                }
+                if (ratioElement) {
+                    ratioElement.textContent = `${stats.hitRatio}%`;
+                }
+            });
+        }
+        
+        // Update showAlgorithmExplanation to properly toggle visibility
+        function showAlgorithmExplanation() {
+            const algo = algorithm; // Current selected algorithm
+            
+            // Hide all explanations first
+            document.querySelectorAll('.algorithm-explanation').forEach(div => {
+                div.classList.add('hidden');
+                div.style.maxHeight = '0';
+            });
+            
+            // Show selected algorithm explanation
+            const explanationId = `${algo}Explanation`;
+            const explanationDiv = document.getElementById(explanationId);
+            if (explanationDiv) {
+                explanationDiv.classList.remove('hidden');
+                explanationDiv.style.maxHeight = '1000px';
+                
+                // Update button text
+                const showBtn = document.getElementById('showAlgorithmBtn');
+                if (showBtn) {
+                    showBtn.innerHTML = `
+                        <i class="fas fa-book-open mr-2"></i>
+                        ${algo.toUpperCase()} Algorithm Explanation
+                    `;
+                }
+            }
+        }
+        
+        // Make sure this is called when algorithm changes
+        document.getElementById('algorithm').addEventListener('change', showAlgorithmExplanation);
+        
+        // Add event listeners for new buttons
+        document.getElementById('compareAlgorithmsBtn').addEventListener('click', compareAlgorithms);
+        document.getElementById('showAlgorithmBtn').addEventListener('click', showAlgorithmExplanation);
+    </script>
+</body>
+</html>
